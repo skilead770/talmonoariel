@@ -1,6 +1,6 @@
 import { BarMitzvahRecord } from '../types';
 
-export const SAMPLE_CSV_CONTENT = `פרשה,שם הילד,תאריך,הערות
+export const SAMPLE_CSV_CONTENT = `פרשה,שם הנער,תאריך,הערות
 מטות מסעי,אזולאי אחיה,11 ביולי 2026,
 דברים,גובי אלקנה,18 ביולי 2026,
 ואתחנן,שטרן ישי,25 ביולי 2026,

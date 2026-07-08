@@ -69,7 +69,7 @@ export function autoDetectMapping(headers: string[]): CsvMapping {
   // Parsha indicators
   const parshaTerms = ['parsha', 'parshat', 'shabbat', 'torah', 'portion', 'sidra', 'week', 'parshat hashavua', 'פרשה', 'פרשת השבוע', 'שבת', 'תורה', 'סדרה', 'בר מצווה', 'בר-מצווה', 'בר מצוה'];
   // Kid indicators
-  const kidTerms = ['kid', 'child', 'name', 'boy', 'student', 'celebrant', 'candidate', 'youth', 'person', 'ילד', 'שם', 'שם הילד', 'חתן', 'חוגג'];
+  const kidTerms = ['kid', 'child', 'name', 'boy', 'student', 'celebrant', 'candidate', 'youth', 'person', 'ילד', 'נער', 'שם', 'שם הילד', 'שם הנער', 'חתן', 'חוגג'];
   // Date indicators
   const dateTerms = ['date', 'time', 'shabbat date', 'gregorian', 'hebrew date', 'תאריך', 'יום', 'שבת תאריך', 'תאריך שבת'];
   // Notes indicators

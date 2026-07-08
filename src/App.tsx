@@ -283,7 +283,7 @@ export default function App() {
 
   const saveImportedData = () => {
     if (!currentMapping.parshaKey || !currentMapping.kidKey) {
-      setErrorMsg('חובה לשייך לפחות את עמודת פרשת השבוע ועמודת שם הילד.');
+      setErrorMsg('חובה לשייך לפחות את עמודת פרשת השבוע ועמודת שם הנער.');
       return;
     }
 
@@ -349,14 +349,14 @@ export default function App() {
             <div className="flex items-center gap-2 mb-1.5 animate-fade-in">
               <span className="bg-amber-100 text-amber-800 text-xs font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1 border border-amber-200/50">
                 <Sparkles className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
-                שמחות שבת ובר מצווה
+                TalmoNoar — שמחות שבת ובר מצווה
               </span>
             </div>
             <h1 className="text-3xl font-bold tracking-tight text-stone-900" id="app-title">
-              משבץ בר המצווה לשבתות השנה
+              TalmoNoar — משבץ בר המצווה לשבתות השנה
             </h1>
             <p className="text-sm text-stone-500 mt-1 max-w-xl">
-              בחרו את פרשת השבוע כדי לגלות איזה ילד חוגג את בר המצווה שלו, או הציגו את לוח השנה המלא והמפורט.
+              בחרו את פרשת השבוע כדי לגלות איזה נער חוגג את בר המצווה שלו, או הציגו את לוח השנה המלא והמפורט.
             </p>
           </div>
           
@@ -464,7 +464,7 @@ export default function App() {
                           <Search className="w-4 h-4 text-stone-400 shrink-0 mr-1" />
                           <input
                             type="text"
-                            placeholder="הקלידו לחיפוש פרשה או שם הילד..."
+                            placeholder="הקלידו לחיפוש פרשה או שם הנער..."
                             value={dropdownSearch}
                             onChange={(e) => setDropdownSearch(e.target.value)}
                             className="w-full bg-transparent text-sm text-stone-800 py-1.5 px-1 border-none focus:outline-hidden text-right"
@@ -551,7 +551,7 @@ export default function App() {
                   <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-amber-300/10 rounded-full blur-2xl pointer-events-none" />
                   
                   <span className="text-amber-700 text-xs font-bold uppercase tracking-widest bg-amber-100/50 border border-amber-200/30 px-3.5 py-1 rounded-full inline-block mb-4">
-                    {currentCelebrants.length > 1 ? 'חתני בר המצווה החוגגים בשבת זו' : 'חתן בר המצווה החוגג בשבת זו'}
+                    {currentCelebrants.length > 1 ? 'נערי בר המצווה החוגגים בשבת זו' : 'נער בר המצווה החוגג בשבת זו'}
                   </span>
 
                   {/* Gigantic kid name(s) - all in the exact same view and size */}
@@ -674,7 +674,7 @@ export default function App() {
                   <div className="flex items-center gap-2 mb-4 border-b border-stone-100 pb-3">
                     <Users className="w-5 h-5 text-amber-600" />
                     <h3 className="font-bold text-stone-950 text-base">
-                      שמות הממתינים לשיבוץ ({unassignedKids.length} ילדים)
+                      שמות הממתינים לשיבוץ ({unassignedKids.length} נערים)
                     </h3>
                     <span className="text-xs text-stone-400 font-normal mr-auto">
                       לחצו על "שבץ לפרשה" כדי לבחור פרשה ולשייך להם שבת חגיגה
@@ -802,7 +802,7 @@ export default function App() {
                   <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 w-4 h-4" />
                   <input
                     type="text"
-                    placeholder="חיפוש לפי ילד, פרשה, תאריך או הערות..."
+                    placeholder="חיפוש לפי נער, פרשה, תאריך או הערות..."
                     value={scheduleSearch}
                     onChange={(e) => setScheduleSearch(e.target.value)}
                     className="w-full bg-stone-50 hover:bg-stone-100 border border-stone-200 rounded-lg pr-9 pl-4 py-2 text-sm text-stone-800 placeholder-stone-400 focus:outline-hidden focus:ring-2 focus:ring-amber-400"
@@ -836,7 +836,7 @@ export default function App() {
                       <tr className="bg-stone-50/75 border-b border-stone-200 text-stone-500 font-semibold text-xs uppercase tracking-wider">
                         <th className="py-3 px-4 w-12 text-center">מס'</th>
                         <th className="py-3 px-4 text-right">פרשת השבוע</th>
-                        <th className="py-3 px-4 text-right">חתן בר המצווה</th>
+                        <th className="py-3 px-4 text-right">הנער (חתן בר המצווה)</th>
                         <th className="py-3 px-4 text-right">תאריך השבת</th>
                         <th className="py-3 px-4 text-right hidden md:table-cell">הערות לשבת</th>
                         <th className="py-3 px-4 text-left">פעולה</th>
@@ -865,7 +865,7 @@ export default function App() {
                               </td>
                               <td className="py-3.5 px-4 font-medium text-stone-900">
                                 {record.kidName || (
-                                  <span className="text-stone-400 italic font-normal">לא נקבע חתן</span>
+                                  <span className="text-stone-400 italic font-normal">לא נקבע נער</span>
                                 )}
                               </td>
                               <td className="py-3.5 px-4 text-right">
@@ -1013,14 +1013,14 @@ export default function App() {
                       <textarea
                         value={pasteContent}
                         onChange={(e) => setPasteContent(e.target.value)}
-                        placeholder={`פרשה,שם הילד,תאריך,הערות
+                        placeholder={`פרשה,שם הנער,תאריך,הערות
 בראשית,נועם גולדשטיין,24 באוקטובר 2026,קרובי משפחה מחו"ל מגיעים
 נח,בנימין לוי,31 באוקטובר 2026,`}
                         rows={10}
                         className="w-full bg-stone-50 hover:bg-stone-100 border border-stone-200 rounded-xl p-3 text-xs font-mono text-stone-700 placeholder-stone-400 focus:outline-hidden focus:ring-2 focus:ring-amber-400 text-right"
                       />
                       <p className="text-[11px] text-stone-400">
-                        ודאו כי השורה הראשונה מכילה את שמות העמודות (כמו "פרשה" ו-"שם הילד").
+                        ודאו כי השורה הראשונה מכילה את שמות העמודות (כמו "פרשה" ו-"שם הנער").
                       </p>
                     </div>
 
@@ -1068,7 +1068,7 @@ export default function App() {
                       {/* Kid Column Selector */}
                       <div className="space-y-1">
                         <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider">
-                          עמודת שם חתן בר המצווה <span className="text-red-500">*</span>
+                          עמודת שם הנער (חתן בר המצווה) <span className="text-red-500">*</span>
                         </label>
                         <select
                           value={currentMapping.kidKey}
