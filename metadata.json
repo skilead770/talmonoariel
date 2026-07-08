@@ -1,0 +1,6 @@
+{
+  "name": "Bar Mitzvah Parsha Matcher",
+  "description": "Find which child is celebrating their Bar Mitzvah for any given Parshat Hashavua.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
