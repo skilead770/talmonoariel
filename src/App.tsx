@@ -17,7 +17,8 @@ import {
   Info,
   ArrowLeft,
   ArrowRight,
-  Printer
+  Printer,
+  Plus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BarMitzvahRecord, CsvMapping } from './types';
@@ -66,6 +67,13 @@ export default function App() {
   });
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  // Add Boy Form State
+  const [isAddBoyOpen, setIsAddBoyOpen] = useState(false);
+  const [addBoyName, setAddBoyName] = useState('');
+  const [addBoyParsha, setAddBoyParsha] = useState('');
+  const [addBoyNotes, setAddBoyNotes] = useState('');
+  const [addBoyError, setAddBoyError] = useState('');
 
   // Refs
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -186,6 +194,51 @@ export default function App() {
     
     // Also set current select record to this newly assigned one so they can see the finder details!
     setSelectedRecordId(kidId);
+  };
+
+  const handleAddBoy = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!addBoyName.trim()) {
+      setAddBoyError('אנא הזן את שם הנער.');
+      return;
+    }
+
+    // Determine details based on selected parsha
+    let resolvedDate = '';
+    let resolvedNotes = '';
+    if (addBoyParsha) {
+      const resolved = resolveDateForParsha(addBoyParsha);
+      resolvedDate = resolved.date || '';
+      resolvedNotes = resolved.notes || '';
+    }
+
+    const newRecord: BarMitzvahRecord = {
+      id: 'manual_' + Date.now().toString(),
+      kidName: addBoyName.trim(),
+      parsha: addBoyParsha, // can be empty (meaning waiting list)
+      date: resolvedDate,
+      notes: addBoyNotes.trim() || resolvedNotes
+    };
+
+    const updatedRecords = [...records, newRecord];
+    const sorted = sortRecordsChronologically(updatedRecords);
+    
+    setRecords(sorted);
+    setIsUsingSample(false); // Once they modify, it's their personal active set
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sorted));
+    
+    // Select the newly added record
+    setSelectedRecordId(newRecord.id);
+    
+    // Reset state and close modal
+    setIsAddBoyOpen(false);
+    setAddBoyName('');
+    setAddBoyParsha('');
+    setAddBoyNotes('');
+    setAddBoyError('');
+    
+    // Activate finder to show the new or selected parsha
+    setActiveTab('finder');
   };
 
   // --- All celebrants celebrating on the current record's Shabbat ---
@@ -374,6 +427,21 @@ export default function App() {
               </span>
             )}
             
+            <button
+              onClick={() => {
+                setIsAddBoyOpen(true);
+                setAddBoyName('');
+                setAddBoyParsha('');
+                setAddBoyNotes('');
+                setAddBoyError('');
+              }}
+              id="btn-add-boy"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 border border-amber-700 rounded-lg px-3.5 py-1.5 shadow-2xs transition duration-150 cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              הוספת נער חדש
+            </button>
+
             <button
               onClick={() => {
                 setIsDrawerOpen(true);
@@ -1150,6 +1218,131 @@ export default function App() {
                   </div>
                 )}
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ADD BOY MODAL OVERLAY */}
+      <AnimatePresence>
+        {isAddBoyOpen && (
+          <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-xs" id="add-boy-modal" dir="rtl">
+            {/* Backdrop click to close */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsAddBoyOpen(false)}
+              className="absolute inset-0 bg-transparent cursor-pointer"
+            />
+            
+            {/* Modal Body */}
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              transition={{ type: 'spring', duration: 0.3 }}
+              className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden flex flex-col z-10 text-right"
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-stone-100 flex items-center justify-between bg-stone-50">
+                <div className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-amber-600 shrink-0" />
+                  <div>
+                    <h3 className="text-lg font-bold text-stone-900">הוספת נער (חתן בר מצווה) חדש</h3>
+                    <p className="text-xs text-stone-500 mt-0.5">הזינו את פרטי הנער ושייכו אותו לפרשת השבוע.</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsAddBoyOpen(false)}
+                  className="p-1.5 hover:bg-stone-200 rounded-full text-stone-400 hover:text-stone-600 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Form Body */}
+              <form onSubmit={handleAddBoy} className="p-6 space-y-4">
+                {addBoyError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex gap-2">
+                    <X className="w-4 h-4 shrink-0" />
+                    <span>{addBoyError}</span>
+                  </div>
+                )}
+
+                {/* Boy Name Field */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider">
+                    שם הנער <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    placeholder="לדוגמה: אריאל כהן"
+                    value={addBoyName}
+                    onChange={(e) => setAddBoyName(e.target.value)}
+                    className="w-full bg-stone-50 hover:bg-stone-100 border border-stone-200 rounded-xl px-3 py-2.5 text-sm text-stone-800 placeholder-stone-400 focus:outline-hidden focus:ring-2 focus:ring-amber-400 focus:bg-white text-right font-medium"
+                  />
+                </div>
+
+                {/* Parsha Field */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider">
+                    פרשת השבוע
+                  </label>
+                  <select
+                    value={addBoyParsha}
+                    onChange={(e) => setAddBoyParsha(e.target.value)}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-sm text-stone-800 focus:outline-hidden focus:ring-2 focus:ring-amber-400 cursor-pointer text-right font-medium"
+                  >
+                    <option value="">-- ללא פרשה (רשימת ממתינים לשיבוץ) --</option>
+                    {CANONICAL_PARSHAS_LIST.map((p) => {
+                      const resolved = resolveDateForParsha(p);
+                      const hebDate = resolved.date ? convertToHebrewDate(resolved.date) : '';
+                      return (
+                        <option key={p} value={p}>
+                          פרשת {p} {hebDate ? `(${hebDate})` : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <p className="text-[10px] text-stone-400">
+                    בחירת הפרשה תשבץ את הנער באופן אוטומטי לתאריך השבת המתאים ותוסיף אותו ללוח.
+                  </p>
+                </div>
+
+                {/* Notes Field */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider">
+                    הערות (אופציונלי)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="לדוגמה: קרובי משפחה מחו״ל מגיעים"
+                    value={addBoyNotes}
+                    onChange={(e) => setAddBoyNotes(e.target.value)}
+                    className="w-full bg-stone-50 hover:bg-stone-100 border border-stone-200 rounded-xl px-3 py-2.5 text-sm text-stone-800 placeholder-stone-400 focus:outline-hidden focus:ring-2 focus:ring-amber-400 focus:bg-white text-right font-medium"
+                  />
+                </div>
+
+                {/* Actions */}
+                <div className="pt-4 border-t border-stone-100 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddBoyOpen(false)}
+                    className="flex-1 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold text-xs rounded-xl transition cursor-pointer text-center"
+                  >
+                    ביטול
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs rounded-xl shadow-xs transition cursor-pointer text-center"
+                  >
+                    שמור והוסף ללוח
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}
