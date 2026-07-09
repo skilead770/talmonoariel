@@ -25,7 +25,7 @@ import { BarMitzvahRecord, CsvMapping } from './types';
 import { parseSampleData, SAMPLE_CSV_CONTENT } from './data/sampleData';
 import { parseCsv, autoDetectMapping, mapRowsToRecords } from './utils/csvParser';
 import { convertToHebrewDate, sortRecordsChronologically, resolveDateForParsha, CANONICAL_PARSHAS_LIST } from './utils/hebrewDate';
-import { getAllBoys, addBoy, updateBoy, deleteBoy } from './utils/firebase';
+import { getAllBoys, addBoy, updateBoy, deleteBoy, migrateLocalStorageToFirebase } from './utils/firebase';
 
 const LOCAL_STORAGE_KEY = 'bar_mitzvah_schedule_data';
 const LOCAL_STORAGE_MAPPING_KEY = 'bar_mitzvah_schedule_mapping';
@@ -107,6 +107,11 @@ export default function App() {
             setRecords(sorted);
             setIsUsingSample(false);
             setSelectedRecordId(sorted[0].id);
+            
+            // Migrate to Firebase in background
+            migrateLocalStorageToFirebase(sorted).catch(err => 
+              console.error('Background migration error:', err)
+            );
             return;
           }
         } catch (e) {
@@ -115,7 +120,18 @@ export default function App() {
       }
 
       // Fallback to sample data
-      loadSampleData();
+      const samples = parseSampleData();
+      const sorted = sortRecordsChronologically(samples);
+      setRecords(sorted);
+      setIsUsingSample(true);
+      if (sorted.length > 0) {
+        setSelectedRecordId(sorted[0].id);
+      }
+      
+      // Migrate sample data to Firebase in background
+      migrateLocalStorageToFirebase(sorted).catch(err => 
+        console.error('Background migration error:', err)
+      );
     };
 
     loadData();
