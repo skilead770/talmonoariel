@@ -25,6 +25,7 @@ import { BarMitzvahRecord, CsvMapping } from './types';
 import { parseSampleData, SAMPLE_CSV_CONTENT } from './data/sampleData';
 import { parseCsv, autoDetectMapping, mapRowsToRecords } from './utils/csvParser';
 import { convertToHebrewDate, sortRecordsChronologically, resolveDateForParsha, CANONICAL_PARSHAS_LIST } from './utils/hebrewDate';
+import { getAllBoys, addBoy, updateBoy, deleteBoy } from './utils/firebase';
 
 const LOCAL_STORAGE_KEY = 'bar_mitzvah_schedule_data';
 const LOCAL_STORAGE_MAPPING_KEY = 'bar_mitzvah_schedule_mapping';
@@ -81,45 +82,43 @@ export default function App() {
 
   // --- Load Initial Data ---
   useEffect(() => {
-    const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (storedData) {
+    const loadData = async () => {
       try {
-        let parsed = JSON.parse(storedData) as BarMitzvahRecord[];
-        if (parsed.length > 0) {
-          // Auto-migrate: put שחם אליה on וישלח if currently unassigned or waiting
-          let migrated = false;
-          parsed = parsed.map(r => {
-            const normalizedName = r.kidName ? r.kidName.trim() : '';
-            if ((normalizedName === 'שחם אליה' || normalizedName === 'אליה שחם') && (!r.parsha || r.parsha.trim() === '')) {
-              migrated = true;
-              const resolved = resolveDateForParsha('וישלח');
-              return {
-                ...r,
-                parsha: 'וישלח',
-                date: resolved.date || '28 בנובמבר 2026',
-                notes: r.notes || resolved.notes || ''
-              };
-            }
-            return r;
-          });
-
-          const sorted = sortRecordsChronologically(parsed);
+        // Try to load from Firebase first
+        const firebaseData = await getAllBoys();
+        if (firebaseData && firebaseData.length > 0) {
+          const sorted = sortRecordsChronologically(firebaseData);
           setRecords(sorted);
           setIsUsingSample(false);
-          if (migrated) {
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sorted));
-          }
-          // Pre-select first record
           setSelectedRecordId(sorted[0].id);
-        } else {
-          loadSampleData();
+          return;
         }
-      } catch (e) {
-        loadSampleData();
+      } catch (error) {
+        console.error('Firebase load error, falling back to localStorage:', error);
       }
-    } else {
+
+      // Fallback to localStorage
+      const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (storedData) {
+        try {
+          let parsed = JSON.parse(storedData) as BarMitzvahRecord[];
+          if (parsed.length > 0) {
+            const sorted = sortRecordsChronologically(parsed);
+            setRecords(sorted);
+            setIsUsingSample(false);
+            setSelectedRecordId(sorted[0].id);
+            return;
+          }
+        } catch (e) {
+          console.error('localStorage parse error:', e);
+        }
+      }
+
+      // Fallback to sample data
       loadSampleData();
-    }
+    };
+
+    loadData();
   }, []);
 
   const loadSampleData = () => {
@@ -190,75 +189,102 @@ export default function App() {
     );
   }, [parshaOptions, assigningSearch]);
 
-  const assignParshaToKid = (kidId: string, selectedParsha: string) => {
-    const resolved = resolveDateForParsha(selectedParsha);
-    const updatedRecords = records.map(r => {
-      if (r.id === kidId) {
-        return {
-          ...r,
+  const assignParshaToKid = async (kidId: string, selectedParsha: string) => {
+    try {
+      const resolved = resolveDateForParsha(selectedParsha);
+      const updatedRecords = records.map(r => {
+        if (r.id === kidId) {
+          return {
+            ...r,
+            parsha: selectedParsha,
+            date: resolved.date || r.date,
+            notes: resolved.notes || r.notes || ''
+          };
+        }
+        return r;
+      });
+      
+      const sorted = sortRecordsChronologically(updatedRecords);
+      setRecords(sorted);
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sorted));
+      
+      // Update in Firebase
+      const updatedRecord = sorted.find(r => r.id === kidId);
+      if (updatedRecord) {
+        await updateBoy(kidId, {
           parsha: selectedParsha,
-          date: resolved.date || r.date,
-          notes: resolved.notes || r.notes || ''
-        };
+          date: resolved.date || updatedRecord.date,
+          notes: resolved.notes || updatedRecord.notes || ''
+        });
       }
-      return r;
-    });
-    
-    const sorted = sortRecordsChronologically(updatedRecords);
-    setRecords(sorted);
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sorted));
-    
-    // Clear selection state
-    setAssigningKidId(null);
-    setAssigningSearch('');
-    
-    // Also set current select record to this newly assigned one so they can see the finder details!
-    setSelectedRecordId(kidId);
+      
+      // Clear selection state
+      setAssigningKidId(null);
+      setAssigningSearch('');
+      
+      // Set current select record to this newly assigned one
+      setSelectedRecordId(kidId);
+    } catch (error) {
+      console.error('Error assigning parsha:', error);
+    }
   };
 
-  const handleAddBoy = (e: React.FormEvent) => {
+  const handleAddBoy = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!addBoyName.trim()) {
       setAddBoyError('אנא הזן את שם הנער.');
       return;
     }
 
-    // Determine details based on selected parsha
-    let resolvedDate = '';
-    let resolvedNotes = '';
-    if (addBoyParsha) {
-      const resolved = resolveDateForParsha(addBoyParsha);
-      resolvedDate = resolved.date || '';
-      resolvedNotes = resolved.notes || '';
+    try {
+      // Determine details based on selected parsha
+      let resolvedDate = '';
+      let resolvedNotes = '';
+      if (addBoyParsha) {
+        const resolved = resolveDateForParsha(addBoyParsha);
+        resolvedDate = resolved.date || '';
+        resolvedNotes = resolved.notes || '';
+      }
+
+      const newRecord = {
+        kidName: addBoyName.trim(),
+        parsha: addBoyParsha,
+        date: resolvedDate,
+        notes: addBoyNotes.trim() || resolvedNotes
+      };
+
+      // Save to Firebase
+      const docId = await addBoy(newRecord);
+      
+      // Update local state
+      const recordWithId: BarMitzvahRecord = {
+        id: docId,
+        ...newRecord
+      };
+
+      const updatedRecords = [...records, recordWithId];
+      const sorted = sortRecordsChronologically(updatedRecords);
+      
+      setRecords(sorted);
+      setIsUsingSample(false);
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sorted));
+      
+      // Select the newly added record
+      setSelectedRecordId(recordWithId.id);
+      
+      // Reset state and close modal
+      setIsAddBoyOpen(false);
+      setAddBoyName('');
+      setAddBoyParsha('');
+      setAddBoyNotes('');
+      setAddBoyError('');
+      
+      // Activate finder to show the new or selected parsha
+      setActiveTab('finder');
+    } catch (error) {
+      setAddBoyError('שגיאה בהוספת הנער. אנא נסה שוב.');
+      console.error('Error adding boy:', error);
     }
-
-    const newRecord: BarMitzvahRecord = {
-      id: 'manual_' + Date.now().toString(),
-      kidName: addBoyName.trim(),
-      parsha: addBoyParsha, // can be empty (meaning waiting list)
-      date: resolvedDate,
-      notes: addBoyNotes.trim() || resolvedNotes
-    };
-
-    const updatedRecords = [...records, newRecord];
-    const sorted = sortRecordsChronologically(updatedRecords);
-    
-    setRecords(sorted);
-    setIsUsingSample(false); // Once they modify, it's their personal active set
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sorted));
-    
-    // Select the newly added record
-    setSelectedRecordId(newRecord.id);
-    
-    // Reset state and close modal
-    setIsAddBoyOpen(false);
-    setAddBoyName('');
-    setAddBoyParsha('');
-    setAddBoyNotes('');
-    setAddBoyError('');
-    
-    // Activate finder to show the new or selected parsha
-    setActiveTab('finder');
   };
 
   // --- All celebrants celebrating on the current record's Shabbat ---
