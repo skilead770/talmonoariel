@@ -84,11 +84,31 @@ export default function App() {
     const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (storedData) {
       try {
-        const parsed = JSON.parse(storedData) as BarMitzvahRecord[];
+        let parsed = JSON.parse(storedData) as BarMitzvahRecord[];
         if (parsed.length > 0) {
+          // Auto-migrate: put שחם אליה on וישלח if currently unassigned or waiting
+          let migrated = false;
+          parsed = parsed.map(r => {
+            const normalizedName = r.kidName ? r.kidName.trim() : '';
+            if ((normalizedName === 'שחם אליה' || normalizedName === 'אליה שחם') && (!r.parsha || r.parsha.trim() === '')) {
+              migrated = true;
+              const resolved = resolveDateForParsha('וישלח');
+              return {
+                ...r,
+                parsha: 'וישלח',
+                date: resolved.date || '28 בנובמבר 2026',
+                notes: r.notes || resolved.notes || ''
+              };
+            }
+            return r;
+          });
+
           const sorted = sortRecordsChronologically(parsed);
           setRecords(sorted);
           setIsUsingSample(false);
+          if (migrated) {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sorted));
+          }
           // Pre-select first record
           setSelectedRecordId(sorted[0].id);
         } else {
@@ -402,14 +422,14 @@ export default function App() {
             <div className="flex items-center gap-2 mb-1.5 animate-fade-in">
               <span className="bg-amber-100 text-amber-800 text-xs font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1 border border-amber-200/50">
                 <Sparkles className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
-                TalmoNoar — שמחות שבת ובר מצווה
+                טלמונוער — שמחות שבת ובר מצווה
               </span>
             </div>
             <h1 className="text-3xl font-bold tracking-tight text-stone-900" id="app-title">
-              TalmoNoar — משבץ בר המצווה לשבתות השנה
+              טלמונוער — משבץ קוראים לפי פרשת בר-מצווה לשבתות השנה
             </h1>
             <p className="text-sm text-stone-500 mt-1 max-w-xl">
-              בחרו את פרשת השבוע כדי לגלות איזה נער חוגג את בר המצווה שלו, או הציגו את לוח השנה המלא והמפורט.
+              בחרו את פרשת השבוע כדי לגלות איזה נער חוגג את שבת בר המצווה שלו, או הציגו את לוח השנה המלא והמפורט.
             </p>
           </div>
           

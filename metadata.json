@@ -1,6 +1,6 @@
 {
-  "name": "TalmoNoar",
-  "description": "TalmoNoar - Bar Mitzvah Parsha Matcher and scheduler for teenagers.",
+  "name": "טלמונוער",
+  "description": "טלמונוער - משבץ קוראים לפי פרשת בר-מצווה לשבתות השנה.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
