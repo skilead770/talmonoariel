@@ -15,6 +15,8 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const boysCollection = collection(db, 'boys');
 
+const MIGRATION_FLAG = 'firebase_migration_done';
+
 // Get all boys from Firestore
 export async function getAllBoys(): Promise<BarMitzvahRecord[]> {
   try {
@@ -60,6 +62,41 @@ export async function deleteBoy(id: string): Promise<void> {
     await deleteDoc(doc(db, 'boys', id));
   } catch (error) {
     console.error('Error deleting boy:', error);
+    throw error;
+  }
+}
+
+// Migrate existing data from localStorage to Firebase
+export async function migrateLocalStorageToFirebase(records: BarMitzvahRecord[]): Promise<void> {
+  // Check if already migrated
+  const alreadyMigrated = localStorage.getItem(MIGRATION_FLAG);
+  if (alreadyMigrated) {
+    console.log('Migration already completed');
+    return;
+  }
+
+  try {
+    // Check if Firebase already has data
+    const existingData = await getAllBoys();
+    if (existingData.length > 0) {
+      console.log('Firebase already has data. Setting migration flag and skipping.');
+      localStorage.setItem(MIGRATION_FLAG, 'true');
+      return;
+    }
+
+    // Migrate records
+    console.log(`Migrating ${records.length} records to Firebase...`);
+    for (const record of records) {
+      const { id, ...recordData } = record;
+      await addBoy(recordData);
+      console.log(`✓ Migrated: ${recordData.kidName}`);
+    }
+
+    // Set migration flag
+    localStorage.setItem(MIGRATION_FLAG, 'true');
+    console.log(`✅ Migration complete! ${records.length} records saved to Firebase.`);
+  } catch (error) {
+    console.error('❌ Migration failed:', error);
     throw error;
   }
 }
